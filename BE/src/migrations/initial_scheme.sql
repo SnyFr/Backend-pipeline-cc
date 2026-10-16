@@ -1,4 +1,4 @@
-CREATE DATABASE content_creator_tracker_db;
+CREATE DATABASE IF NOT EXISTS content_creator_tracker_db;
 use content_creator_tracker_db;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR (191) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role VARCHAR(20) NOT NULL DEFAULT 'creator',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_users_email (email)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 CREATE TABLE IF NOT EXISTS channels (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS contents (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (channel_id) REFERENCES channels(id) ON DELETE CASCADE,
-  INDEX idx_contents_status (status),
+  INDEX idx_contents_user_status (user_id, status),
   INDEX idx_contents_user_channel (user_id, channel_id)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
