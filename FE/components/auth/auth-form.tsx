@@ -96,7 +96,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         setSuccessMessage("Akun berhasil dibuat. Mengalihkan ke workspace...");
         setTimeout(() => {
-          router.push("/channels");
+          router.push("/contents");
         }, 800);
       } else {
         const response = await loginUser({
@@ -120,7 +120,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
         setSuccessMessage("Berhasil masuk. Mengalihkan ke workspace...");
         setTimeout(() => {
-          router.push("/channels");
+          router.push("/contents");
         }, 500);
       }
     } catch (err: unknown) {
