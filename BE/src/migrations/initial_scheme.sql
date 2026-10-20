@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS content_creator_tracker_db;
 use content_creator_tracker_db;
 
+
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR (100) NOT NULL,

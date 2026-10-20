@@ -1,5 +1,6 @@
 USE content_creator_tracker_db;
 
+
 -- 1. Seed Users (Password: Password123!)
 INSERT INTO users (id, name, email, password_hash, role) VALUES
 (1, 'Agil Feriski', 'agil@creator.com', '$2b$10$TytmIS8XYe8XjXxHQALL8uyqG2bpdz6y429T1X1cMoMvn8Nxl3ITK', 'creator')
