@@ -9,20 +9,29 @@ export const authenticateToken = (req, res, next) => {
     return sendResponse(res, 401, false, 'Access token is missing or invalid');
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return sendResponse(res, 403, false, 'Token is invalid or expired');
-    }
-    req.user = user;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'LEGIONFL@2054');
+    req.user = decoded;
     next();
-  });
-};
+  } catch (error) {
+    return res.status(403).json({
+      status: false,
+      message: "invalid or expired token!"
+    })
+  }
+}
 
 export const authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return sendResponse(res, 403, false, 'Forbidden: You do not have permission');
+    if (!req.user || !req.user.role) {
+      return sendResponse(res, 403, false, 'Authenticate is needed. Role not found');
     }
+    const {role} = req.user;
+
+    if (!roles.includes(role)) {
+      return sendResponse(res, 403, false, `Role ${role} do not have permission to this resource`)
+    }
+    
     next();
   };
 };
