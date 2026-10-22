@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 import sendResponse from "../utils/response.js";
 
 const VALID_FORMAT_TYPES = ["short_video", "long_video", "carousel", "single_post"];
-const VALID_STATUSES = ["idea", "scripting", "recording", "editing", "ready", "published"];
+const VALID_STATUSES = ["idea", "scripting", "recording", "editing", "review", "ready", "published"];
 const VALID_PRIORITIES = ["low", "medium", "high"];
 
 // URL Validator Helper
@@ -14,6 +14,36 @@ const isValidUrl = (urlString) => {
     return false;
   }
 };
+
+// export const updateUserRole = async (req, res, next) => {
+//   const {id: targetUserId } = req.params;
+//   const {newRole} = req.body;
+//   const currentRole = req.user.role;
+  
+//   if (newRole === 'admin' && currentRole !== 'admin') {
+//     return sendResponse(res, 403, false, "You do not have authority to become an admin")
+//   }
+
+//   if (currentRole === 'creator') {
+//     if (newRole !== 'editor') {
+//       return sendResponse(res, 403, false, "Creator can only be changed to editor")
+//     }
+//   }
+
+//   if (currentRole === 'editor') {
+//     if(newRole !== 'creator') {
+//       return sendResponse(res, 403, false, "Editor can only changed to creator")
+//     }
+//   }
+
+//   try {
+//     await pool.query('UPDATE users SET role = ? WHERE id = ?', [newRole, targetUserId])
+//     return sendResponse(res, 200, true, `Role have been changed to ${newRole}`)
+//   } catch (error) {
+//     return sendResponse(res, 500, false, "An error occured on the server", error.message)
+//   }
+// }
+
 
 // 1. GET /api/v1/contents (List konten dengan filter ?status=&channel_id=&format_type=)
 export const getContents = async (req, res, next) => {
@@ -191,6 +221,7 @@ export const updateContent = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const contentId = req.params.id;
+    const {role} = req.user;
 
     // Pastikan konten ada dan milik user (mencegah IDOR)
     const [contents] = await pool.execute(
@@ -198,11 +229,26 @@ export const updateContent = async (req, res, next) => {
       [contentId, userId]
     );
 
-    if (contents.length === 0) {
+    const currentContent = contents[0];
+
+    if (!currentContent) {
       return sendResponse(res, 404, false, "Content not found");
     }
 
-    const currentContent = contents[0];
+    const currentStatus = currentContent.status;
+
+    if (role === 'editor') {
+      if (status !== 'review' || currentStatus !== 'editing') {
+        return sendResponse(res, 403, false, 'Editors can only submit reviews while in edit mode')
+      }
+    }
+
+    // if (role === 'creator') {
+    //   if (status === 'published' && (!published_url || published_url.trim() === '')) {
+    //     return sendResponse(res, 403, false, 'The publication URL must be entered when the status is “published”')
+    //   }
+    // }
+
     const {
       channel_id,
       title,
