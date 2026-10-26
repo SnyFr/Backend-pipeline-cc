@@ -7,7 +7,6 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
-    // Validasi input
     if (!name || typeof name !== "string" || name.trim() === "") {
       return sendResponse(res, 400, false, "Name is required");
     }
@@ -17,7 +16,8 @@ export const register = async (req, res, next) => {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!emailRegex.test(normalizedEmail)) {
       return sendResponse(res, 400, false, "Invalid email format");
     }
 
@@ -28,34 +28,27 @@ export const register = async (req, res, next) => {
     const validRoles = ["creator", "editor", "admin"];
     const userRole = role && validRoles.includes(role) ? role : "creator";
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // Cek apakah email sudah terdaftar (TC-01)
-    const [existingUsers] = await pool.execute(
-      "SELECT id FROM users WHERE email = ?",
-      [normalizedEmail]
-    );
-
-    if (existingUsers.length > 0) {
-      return sendResponse(res, 400, false, "Email already taken");
-    }
-
-    // Hash password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insert user baru
-    const [result] = await pool.execute(
-      "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
-      [name.trim(), normalizedEmail, passwordHash, userRole]
-    );
+    try {
+      const [result] = await pool.execute(
+        "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+        [name.trim(), normalizedEmail, passwordHash, userRole]
+      );
 
-    return sendResponse(res, 201, true, "User registered successfully", {
-      id: result.insertId,
-      name: name.trim(),
-      email: normalizedEmail,
-      role: userRole,
-    });
+      return sendResponse(res, 201, true, "User registered successfully", {
+        id: result.insertId,
+        name: name.trim(),
+        email: normalizedEmail,
+        role: userRole,
+      });
+    } catch (dbError) {
+      if (dbError.code === "ER_DUP_ENTRY") {
+        return sendResponse(res, 409, false, "Email already taken");
+      }
+      throw dbError; // Lempar error lain ke outer catch
+    }
   } catch (error) {
     next(error);
   }
@@ -71,9 +64,8 @@ export const login = async (req, res, next) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Cari user berdasarkan email
     const [users] = await pool.execute(
-      "SELECT id, name, email, password_hash, role FROM users WHERE email = ?",
+      "SELECT id, name, email, password_hash, role FROM users WHERE email = ? LIMIT 1",
       [normalizedEmail]
     );
 
@@ -83,13 +75,15 @@ export const login = async (req, res, next) => {
 
     const user = users[0];
 
-    // Verifikasi password hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return sendResponse(res, 401, false, "Invalid email or password");
     }
 
-    // Terbitkan JWT token
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is missing");
+    }
+
     const token = jwt.sign(
       {
         id: user.id,
@@ -115,4 +109,3 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
-
